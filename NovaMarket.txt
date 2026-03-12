@@ -3,237 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NovaMarket</title>
+<title>NovaMarket 3.0</title>
 <style>
 body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#eef2f7}
-header{background:#0f62fe;color:white;padding:16px;text-align:center}
+header{background:#111827;color:white;padding:16px;text-align:center}
 .container{max-width:1100px;margin:auto;padding:20px}
 form{background:white;padding:15px;border-radius:10px;margin-bottom:20px}
-input,textarea,select{width:100%;padding:8px;margin:6px 0}
-button{padding:10px 15px;background:#0f62fe;color:white;border:none;border-radius:6px;cursor:pointer}
+input,textarea{width:100%;padding:8px;margin:6px 0}
+button{padding:10px 15px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px}
 .card{background:white;padding:10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
-.price{font-weight:bold;color:#2e7d32}
+.price{font-weight:bold;color:#16a34a}
 .small{font-size:12px;color:#666}
+img{width:100%;border-radius:8px}
+.panel{background:white;padding:15px;border-radius:10px;margin-top:20px}
 .hidden{display:none}
-video,img{width:100%;border-radius:8px;margin-top:6px}
-#cart{position:fixed;top:10px;right:10px;background:white;padding:10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
-#chatBox{position:fixed;bottom:10px;right:10px;width:260px;background:white;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.2);padding:10px}
-#messages{height:120px;overflow:auto;border:1px solid #ddd;margin-bottom:6px;padding:4px;font-size:12px}
-.search{margin-bottom:15px}
-.tag{background:#dce8ff;padding:2px 6px;border-radius:4px;font-size:11px;margin-left:6px}
 </style>
 </head>
 <body>
 
 <header>
-<h1>NovaMarket</h1>
-<p>Marketplace moderno para comprar y vender</p>
+<h1>NovaMarket 3.0</h1>
+<p>Marketplace conectado a base de datos en internet</p>
 </header>
-
-<div id="cart">
-🛒 <span id="cartCount">0</span>
-<button onclick="checkout()">Pagar</button>
-</div>
 
 <div class="container">
 
-<input class="search" type="text" id="search" placeholder="Buscar productos..." onkeyup="searchProducts()">
-
 <h2>Cuenta</h2>
-<form id="authForm">
-<select id="role">
-<option value="buyer">Comprador</option>
-<option value="seller">Vendedor</option>
-</select>
-<input type="text" id="name" placeholder="Nombre" required>
-<input type="email" id="email" placeholder="Correo" required>
-<input type="password" id="password" placeholder="Contraseña" required>
-<button type="submit">Crear cuenta / Login</button>
+<form id="loginForm">
+<input id="email" type="email" placeholder="Correo" required>
+<input id="password" type="password" placeholder="Contraseña" required>
+<button type="submit">Entrar / Registrarse</button>
 </form>
 
 <div id="sellerPanel" class="hidden">
 <h2>Publicar producto</h2>
 <form id="productForm">
-<input type="text" id="pname" placeholder="Nombre del producto" required>
+<input id="name" placeholder="Nombre del producto" required>
 <textarea id="description" placeholder="Descripción" required></textarea>
-<input type="number" id="price" placeholder="Precio" required>
-<input type="text" id="image" placeholder="URL de imagen">
-<input type="text" id="video" placeholder="URL de video">
-<select id="shipping">
-<option value="delivery">Envío a domicilio</option>
-<option value="pickup">Recojo en tienda</option>
-</select>
-<button type="submit">Publicar producto</button>
+<input id="price" type="number" placeholder="Precio" required>
+<input id="image" placeholder="URL de imagen">
+<button type="submit">Publicar</button>
 </form>
 </div>
 
 <h2>Productos</h2>
-<div class="grid" id="products"></div>
+<div id="products" class="grid"></div>
 
-<h2>Recomendados para ti</h2>
-<div class="grid" id="recommend"></div>
+<div class="panel">
+<h2>Panel del dueño</h2>
+<p>Comisiones ganadas (10%)</p>
+<h3 id="earnings">$0</h3>
+</div>
 
 </div>
 
-<div id="chatBox">
-<strong>Chat</strong>
-<div id="messages"></div>
-<input type="text" id="chatInput" placeholder="Mensaje...">
-<button onclick="sendMessage()">Enviar</button>
-</div>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-let users=JSON.parse(localStorage.getItem('users'))||[];
-let currentUser=JSON.parse(localStorage.getItem('currentUser'));
-let products=JSON.parse(localStorage.getItem('products'))||[];
-let cart=JSON.parse(localStorage.getItem('cart'))||[];
-let chat=JSON.parse(localStorage.getItem('chat'))||[];
 
-const cartCount=document.getElementById('cartCount');
-const sellerPanel=document.getElementById('sellerPanel');
-const productsDiv=document.getElementById('products');
-const recommendDiv=document.getElementById('recommend');
-const messages=document.getElementById('messages');
+// CONFIGURACIÓN FIREBASE
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
 
-cartCount.innerText=cart.length;
+firebase.initializeApp(firebaseConfig);
 
-if(currentUser && currentUser.role==='seller'){
- sellerPanel.classList.remove('hidden');
-}
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// LOGIN / REGISTER
+let earnings = 0;
 
-document.getElementById('authForm').addEventListener('submit',e=>{
+const sellerPanel=document.getElementById("sellerPanel");
+const productsDiv=document.getElementById("products");
+const earningsDiv=document.getElementById("earnings");
+
+// LOGIN
+
+document.getElementById("loginForm").addEventListener("submit", async e=>{
  e.preventDefault();
- const user={
-  name:name.value,
-  email:email.value,
-  password:password.value,
-  role:role.value
- };
 
- let existing=users.find(u=>u.email===user.email);
+ const email=document.getElementById("email").value;
+ const password=document.getElementById("password").value;
 
- if(!existing){
-  users.push(user);
-  localStorage.setItem('users',JSON.stringify(users));
-  existing=user;
- }
-
- if(existing.password===user.password){
-  currentUser=existing;
-  localStorage.setItem('currentUser',JSON.stringify(existing));
-  if(existing.role==='seller') sellerPanel.classList.remove('hidden');
+ try{
+  await auth.signInWithEmailAndPassword(email,password);
+ }catch{
+  await auth.createUserWithEmailAndPassword(email,password);
  }
 });
 
-// PRODUCT RENDER
+// USUARIO
 
-function render(list=products){
- productsDiv.innerHTML='';
- list.forEach((p,i)=>{
-  const card=document.createElement('div');
-  card.className='card';
+auth.onAuthStateChanged(user=>{
+ if(user){
+  sellerPanel.classList.remove("hidden");
+ }
+});
 
-  let media='';
-  if(p.image) media+=`<img src="${p.image}">`;
-  if(p.video) media+=`<video controls src="${p.video}"></video>`;
+// PUBLICAR PRODUCTO
 
-  card.innerHTML=`
-  ${media}
-  <h3>${p.name}</h3>
-  <p>${p.description}</p>
-  <p class="price">$${p.price}</p>
-  <p class="small">Vendedor: ${p.seller}</p>
-  <span class="tag">${p.shipping}</span>
-  <button onclick="addToCart(${i})">Agregar al carrito</button>
-  `;
-
-  productsDiv.appendChild(card);
- });
-
- recommend();
-}
-
-// PRODUCT POST
-
-document.getElementById('productForm').addEventListener('submit',e=>{
+document.getElementById("productForm").addEventListener("submit", async e=>{
  e.preventDefault();
 
  const product={
-  name:pname.value,
+  name:name.value,
   description:description.value,
-  price:price.value,
+  price:Number(price.value),
   image:image.value,
-  video:video.value,
-  shipping:shipping.value,
-  seller:currentUser.name
+  created:Date.now()
  };
 
- products.push(product);
- localStorage.setItem('products',JSON.stringify(products));
+ await db.collection("products").add(product);
 
  e.target.reset();
- render();
 });
 
-// SEARCH
+// CARGAR PRODUCTOS
 
-function searchProducts(){
- const q=document.getElementById('search').value.toLowerCase();
- const filtered=products.filter(p=>p.name.toLowerCase().includes(q));
- render(filtered);
-}
+db.collection("products").orderBy("created","desc").onSnapshot(snapshot=>{
 
-// CART
+ productsDiv.innerHTML="";
 
-function addToCart(i){
- cart.push(products[i]);
- localStorage.setItem('cart',JSON.stringify(cart));
- cartCount.innerText=cart.length;
-}
+ snapshot.forEach(doc=>{
 
-function checkout(){
- if(cart.length===0){alert('Carrito vacío');return;}
- const payment=prompt('Pago: tarjeta / transferencia');
- alert('Pago procesado con '+payment);
- cart=[];
- localStorage.setItem('cart',JSON.stringify(cart));
- cartCount.innerText=0;
-}
+  const p=doc.data();
 
-// AI RECOMMENDATION (simple)
+  const card=document.createElement("div");
+  card.className="card";
 
-function recommend(){
- recommendDiv.innerHTML='';
- let random=[...products].sort(()=>0.5-Math.random()).slice(0,3);
- random.forEach(p=>{
-  const card=document.createElement('div');
-  card.className='card';
-  card.innerHTML=`<h4>${p.name}</h4><p>$${p.price}</p>`;
-  recommendDiv.appendChild(card);
+  card.innerHTML=`
+  <img src="${p.image}">
+  <h3>${p.name}</h3>
+  <p>${p.description}</p>
+  <p class="price">$${p.price}</p>
+  <button onclick="buy(${p.price})">Comprar</button>
+  `;
+
+  productsDiv.appendChild(card);
+
  });
+
+});
+
+// COMPRA
+
+function buy(price){
+
+ const commission = price*0.10;
+ earnings += commission;
+
+ earningsDiv.innerText = "$" + earnings.toFixed(2);
+
+ alert("Compra realizada. Comisión del marketplace: $"+commission.toFixed(2));
+
 }
 
-// CHAT
-
-function renderChat(){
- messages.innerHTML='';
- chat.forEach(m=>messages.innerHTML+=`<div>${m}</div>`);
-}
-
-function sendMessage(){
- const input=document.getElementById('chatInput');
- if(!input.value)return;
- chat.push(input.value);
- localStorage.setItem('chat',JSON.stringify(chat));
- input.value='';
- renderChat();
-}
-
-render();
-renderChat();
 </script>
 
 </body>
