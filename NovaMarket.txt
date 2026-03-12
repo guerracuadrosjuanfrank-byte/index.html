@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovaMarket</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#eef2f7}
+header{background:#0f62fe;color:white;padding:16px;text-align:center}
+.container{max-width:1100px;margin:auto;padding:20px}
+form{background:white;padding:15px;border-radius:10px;margin-bottom:20px}
+input,textarea,select{width:100%;padding:8px;margin:6px 0}
+button{padding:10px 15px;background:#0f62fe;color:white;border:none;border-radius:6px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px}
+.card{background:white;padding:10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+.price{font-weight:bold;color:#2e7d32}
+.small{font-size:12px;color:#666}
+.hidden{display:none}
+video,img{width:100%;border-radius:8px;margin-top:6px}
+#cart{position:fixed;top:10px;right:10px;background:white;padding:10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.2)}
+#chatBox{position:fixed;bottom:10px;right:10px;width:260px;background:white;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.2);padding:10px}
+#messages{height:120px;overflow:auto;border:1px solid #ddd;margin-bottom:6px;padding:4px;font-size:12px}
+.search{margin-bottom:15px}
+.tag{background:#dce8ff;padding:2px 6px;border-radius:4px;font-size:11px;margin-left:6px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>NovaMarket</h1>
+<p>Marketplace moderno para comprar y vender</p>
+</header>
+
+<div id="cart">
+🛒 <span id="cartCount">0</span>
+<button onclick="checkout()">Pagar</button>
+</div>
+
+<div class="container">
+
+<input class="search" type="text" id="search" placeholder="Buscar productos..." onkeyup="searchProducts()">
+
+<h2>Cuenta</h2>
+<form id="authForm">
+<select id="role">
+<option value="buyer">Comprador</option>
+<option value="seller">Vendedor</option>
+</select>
+<input type="text" id="name" placeholder="Nombre" required>
+<input type="email" id="email" placeholder="Correo" required>
+<input type="password" id="password" placeholder="Contraseña" required>
+<button type="submit">Crear cuenta / Login</button>
+</form>
+
+<div id="sellerPanel" class="hidden">
+<h2>Publicar producto</h2>
+<form id="productForm">
+<input type="text" id="pname" placeholder="Nombre del producto" required>
+<textarea id="description" placeholder="Descripción" required></textarea>
+<input type="number" id="price" placeholder="Precio" required>
+<input type="text" id="image" placeholder="URL de imagen">
+<input type="text" id="video" placeholder="URL de video">
+<select id="shipping">
+<option value="delivery">Envío a domicilio</option>
+<option value="pickup">Recojo en tienda</option>
+</select>
+<button type="submit">Publicar producto</button>
+</form>
+</div>
+
+<h2>Productos</h2>
+<div class="grid" id="products"></div>
+
+<h2>Recomendados para ti</h2>
+<div class="grid" id="recommend"></div>
+
+</div>
+
+<div id="chatBox">
+<strong>Chat</strong>
+<div id="messages"></div>
+<input type="text" id="chatInput" placeholder="Mensaje...">
+<button onclick="sendMessage()">Enviar</button>
+</div>
+
+<script>
+let users=JSON.parse(localStorage.getItem('users'))||[];
+let currentUser=JSON.parse(localStorage.getItem('currentUser'));
+let products=JSON.parse(localStorage.getItem('products'))||[];
+let cart=JSON.parse(localStorage.getItem('cart'))||[];
+let chat=JSON.parse(localStorage.getItem('chat'))||[];
+
+const cartCount=document.getElementById('cartCount');
+const sellerPanel=document.getElementById('sellerPanel');
+const productsDiv=document.getElementById('products');
+const recommendDiv=document.getElementById('recommend');
+const messages=document.getElementById('messages');
+
+cartCount.innerText=cart.length;
+
+if(currentUser && currentUser.role==='seller'){
+ sellerPanel.classList.remove('hidden');
+}
+
+// LOGIN / REGISTER
+
+document.getElementById('authForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const user={
+  name:name.value,
+  email:email.value,
+  password:password.value,
+  role:role.value
+ };
+
+ let existing=users.find(u=>u.email===user.email);
+
+ if(!existing){
+  users.push(user);
+  localStorage.setItem('users',JSON.stringify(users));
+  existing=user;
+ }
+
+ if(existing.password===user.password){
+  currentUser=existing;
+  localStorage.setItem('currentUser',JSON.stringify(existing));
+  if(existing.role==='seller') sellerPanel.classList.remove('hidden');
+ }
+});
+
+// PRODUCT RENDER
+
+function render(list=products){
+ productsDiv.innerHTML='';
+ list.forEach((p,i)=>{
+  const card=document.createElement('div');
+  card.className='card';
+
+  let media='';
+  if(p.image) media+=`<img src="${p.image}">`;
+  if(p.video) media+=`<video controls src="${p.video}"></video>`;
+
+  card.innerHTML=`
+  ${media}
+  <h3>${p.name}</h3>
+  <p>${p.description}</p>
+  <p class="price">$${p.price}</p>
+  <p class="small">Vendedor: ${p.seller}</p>
+  <span class="tag">${p.shipping}</span>
+  <button onclick="addToCart(${i})">Agregar al carrito</button>
+  `;
+
+  productsDiv.appendChild(card);
+ });
+
+ recommend();
+}
+
+// PRODUCT POST
+
+document.getElementById('productForm').addEventListener('submit',e=>{
+ e.preventDefault();
+
+ const product={
+  name:pname.value,
+  description:description.value,
+  price:price.value,
+  image:image.value,
+  video:video.value,
+  shipping:shipping.value,
+  seller:currentUser.name
+ };
+
+ products.push(product);
+ localStorage.setItem('products',JSON.stringify(products));
+
+ e.target.reset();
+ render();
+});
+
+// SEARCH
+
+function searchProducts(){
+ const q=document.getElementById('search').value.toLowerCase();
+ const filtered=products.filter(p=>p.name.toLowerCase().includes(q));
+ render(filtered);
+}
+
+// CART
+
+function addToCart(i){
+ cart.push(products[i]);
+ localStorage.setItem('cart',JSON.stringify(cart));
+ cartCount.innerText=cart.length;
+}
+
+function checkout(){
+ if(cart.length===0){alert('Carrito vacío');return;}
+ const payment=prompt('Pago: tarjeta / transferencia');
+ alert('Pago procesado con '+payment);
+ cart=[];
+ localStorage.setItem('cart',JSON.stringify(cart));
+ cartCount.innerText=0;
+}
+
+// AI RECOMMENDATION (simple)
+
+function recommend(){
+ recommendDiv.innerHTML='';
+ let random=[...products].sort(()=>0.5-Math.random()).slice(0,3);
+ random.forEach(p=>{
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=`<h4>${p.name}</h4><p>$${p.price}</p>`;
+  recommendDiv.appendChild(card);
+ });
+}
+
+// CHAT
+
+function renderChat(){
+ messages.innerHTML='';
+ chat.forEach(m=>messages.innerHTML+=`<div>${m}</div>`);
+}
+
+function sendMessage(){
+ const input=document.getElementById('chatInput');
+ if(!input.value)return;
+ chat.push(input.value);
+ localStorage.setItem('chat',JSON.stringify(chat));
+ input.value='';
+ renderChat();
+}
+
+render();
+renderChat();
+</script>
+
+</body>
+</html>
