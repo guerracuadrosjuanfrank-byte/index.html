@@ -2,14 +2,14 @@
 <html>
 <head>
 
-<title>Panel Admin - NovaMarket</title>
+<title>Admin NovaMarket</title>
 
 <style>
 
 body{
 font-family:Arial;
 background:#f5f5f5;
-padding:20px;
+padding:30px;
 }
 
 .panel{
@@ -25,19 +25,21 @@ width:300px;
 
 <body>
 
-<h1>Panel del Dueño</h1>
+<h1>Panel del dueño</h1>
 
 <div class="panel">
 
 <p>Ventas totales: <span id="ventas">0</span></p>
 
-<p>Ganancia (10%): $<span id="ganancia">0</span></p>
+<p>Ganancia 10%: $<span id="ganancia">0</span></p>
 
-<button onclick="actualizar()">Actualizar datos</button>
+<button onclick="actualizar()">Actualizar</button>
 
 </div>
 
 <script>
+
+function actualizar(){
 
 let ventas=localStorage.getItem("ventas") || 0
 let ganancia=localStorage.getItem("ganancia") || 0
@@ -45,15 +47,9 @@ let ganancia=localStorage.getItem("ganancia") || 0
 document.getElementById("ventas").innerText=ventas
 document.getElementById("ganancia").innerText=ganancia
 
-function actualizar(){
-
-ventas=localStorage.getItem("ventas") || 0
-ganancia=localStorage.getItem("ganancia") || 0
-
-document.getElementById("ventas").innerText=ventas
-document.getElementById("ganancia").innerText=ganancia
-
 }
+
+actualizar()
 
 </script>
 
