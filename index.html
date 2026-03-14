@@ -41,15 +41,8 @@ margin:5px;
 
 <input id="nombre" placeholder="Nombre producto">
 <input id="precio" placeholder="Precio">
-<input id="video" placeholder="Link video (opcional)">
 
 <button onclick="publicar()">Publicar</button>
-
-<hr>
-
-<h2>Buscar producto</h2>
-
-<input id="buscar" placeholder="Buscar..." onkeyup="buscar()">
 
 <hr>
 
@@ -61,37 +54,23 @@ margin:5px;
 
 <h2>Carrito</h2>
 
-<div id="carrito"></div>
-
 <h3>Total: $<span id="total">0</span></h3>
 
 <button onclick="comprar()">Comprar</button>
 
-<hr>
-
-<h2>Panel del dueño</h2>
-
-<p>Ventas: <span id="ventas">0</span></p>
-<p>Ganancia 10%: $<span id="ganancia">0</span></p>
-
 <script>
 
 let productos=[]
-let carrito=[]
 let total=0
-let ventas=0
-let ganancia=0
 
 function publicar(){
 
 let nombre=document.getElementById("nombre").value
 let precio=parseFloat(document.getElementById("precio").value)
-let video=document.getElementById("video").value
 
 productos.push({
 nombre:nombre,
-precio:precio,
-video:video
+precio:precio
 })
 
 mostrar()
@@ -112,10 +91,6 @@ html+=`
 
 <p>$${p.precio}</p>
 
-${p.video ? `<iframe width="200" src="${p.video}"></iframe>`:""}
-
-<br>
-
 <button onclick="agregar(${i})">Agregar al carrito</button>
 
 </div>
@@ -130,8 +105,6 @@ document.getElementById("productos").innerHTML=html
 
 function agregar(i){
 
-carrito.push(productos[i])
-
 total+=productos[i].precio
 
 document.getElementById("total").innerText=total
@@ -140,37 +113,19 @@ document.getElementById("total").innerText=total
 
 function comprar(){
 
+let ventas=localStorage.getItem("ventas") || 0
+let ganancia=localStorage.getItem("ganancia") || 0
+
 ventas++
+ganancia=parseFloat(ganancia)+(total*0.10)
 
-let comision=total*0.10
-
-ganancia+=comision
-
-document.getElementById("ventas").innerText=ventas
-document.getElementById("ganancia").innerText=ganancia
+localStorage.setItem("ventas",ventas)
+localStorage.setItem("ganancia",ganancia)
 
 alert("Compra realizada")
 
-carrito=[]
 total=0
-
 document.getElementById("total").innerText=0
-
-}
-
-function buscar(){
-
-let filtro=document.getElementById("buscar").value.toLowerCase()
-
-let lista=document.getElementsByClassName("producto")
-
-for(let p of lista){
-
-let texto=p.innerText.toLowerCase()
-
-p.style.display=texto.includes(filtro)?"block":"none"
-
-}
 
 }
 
