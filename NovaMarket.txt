@@ -1,169 +1,246 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NovaMarket 3.0</title>
+<title>NovaMarket 4.0</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
 <style>
-body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#eef2f7}
-header{background:#111827;color:white;padding:16px;text-align:center}
-.container{max-width:1100px;margin:auto;padding:20px}
-form{background:white;padding:15px;border-radius:10px;margin-bottom:20px}
-input,textarea{width:100%;padding:8px;margin:6px 0}
-button{padding:10px 15px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:15px}
-.card{background:white;padding:10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
-.price{font-weight:bold;color:#16a34a}
-.small{font-size:12px;color:#666}
-img{width:100%;border-radius:8px}
-.panel{background:white;padding:15px;border-radius:10px;margin-top:20px}
-.hidden{display:none}
+body{
+font-family:Arial;
+background:#f5f5f5;
+padding:20px;
+}
+
+.producto{
+background:white;
+padding:15px;
+margin:10px;
+border-radius:10px;
+}
+
+button{
+padding:10px;
+margin-top:5px;
+}
+
+input{
+padding:8px;
+margin:5px;
+}
 </style>
 </head>
+
 <body>
 
-<header>
-<h1>NovaMarket 3.0</h1>
-<p>Marketplace conectado a base de datos en internet</p>
-</header>
+<h1>NovaMarket 4.0</h1>
 
-<div class="container">
+<h2>Login</h2>
 
-<h2>Cuenta</h2>
-<form id="loginForm">
-<input id="email" type="email" placeholder="Correo" required>
-<input id="password" type="password" placeholder="Contraseña" required>
-<button type="submit">Entrar / Registrarse</button>
-</form>
+<input id="email" placeholder="correo">
+<input id="password" placeholder="contraseña" type="password">
 
-<div id="sellerPanel" class="hidden">
+<button onclick="registrar()">Registrarse</button>
+<button onclick="login()">Entrar</button>
+
+<hr>
+
 <h2>Publicar producto</h2>
-<form id="productForm">
-<input id="name" placeholder="Nombre del producto" required>
-<textarea id="description" placeholder="Descripción" required></textarea>
-<input id="price" type="number" placeholder="Precio" required>
-<input id="image" placeholder="URL de imagen">
-<button type="submit">Publicar</button>
-</form>
-</div>
+
+<input id="nombre" placeholder="Nombre producto">
+<input id="precio" placeholder="Precio">
+<input id="imagen" placeholder="URL imagen">
+<input id="video" placeholder="URL video (opcional)">
+
+<button onclick="publicar()">Publicar</button>
+
+<hr>
+
+<h2>Buscar producto</h2>
+
+<input id="buscar" placeholder="Buscar..." onkeyup="buscarProducto()">
+
+<hr>
 
 <h2>Productos</h2>
-<div id="products" class="grid"></div>
 
-<div class="panel">
+<div id="productos"></div>
+
+<hr>
+
+<h2>Carrito</h2>
+
+<div id="carrito"></div>
+
+<h3>Total: $<span id="total">0</span></h3>
+
+<button onclick="comprar()">Comprar</button>
+
+<hr>
+
 <h2>Panel del dueño</h2>
-<p>Comisiones ganadas (10%)</p>
-<h3 id="earnings">$0</h3>
-</div>
 
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<p>Ventas totales: <span id="ventas">0</span></p>
+<p>Ganancia (10%): <span id="ganancia">0</span></p>
 
 <script>
 
 // CONFIGURACIÓN FIREBASE
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "XXXX",
-  appId: "XXXX"
+apiKey:"TU_API_KEY",
+authDomain:"TU_DOMINIO",
+projectId:"TU_PROJECT_ID",
+storageBucket:"TU_BUCKET",
+messagingSenderId:"TU_ID",
+appId:"TU_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
 
-const auth = firebase.auth();
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-let earnings = 0;
+let carrito=[];
+let total=0;
 
-const sellerPanel=document.getElementById("sellerPanel");
-const productsDiv=document.getElementById("products");
-const earningsDiv=document.getElementById("earnings");
+// REGISTRO
+function registrar(){
+
+let email=document.getElementById("email").value;
+let password=document.getElementById("password").value;
+
+auth.createUserWithEmailAndPassword(email,password);
+
+}
 
 // LOGIN
+function login(){
 
-document.getElementById("loginForm").addEventListener("submit", async e=>{
- e.preventDefault();
+let email=document.getElementById("email").value;
+let password=document.getElementById("password").value;
 
- const email=document.getElementById("email").value;
- const password=document.getElementById("password").value;
+auth.signInWithEmailAndPassword(email,password);
 
- try{
-  await auth.signInWithEmailAndPassword(email,password);
- }catch{
-  await auth.createUserWithEmailAndPassword(email,password);
- }
-});
-
-// USUARIO
-
-auth.onAuthStateChanged(user=>{
- if(user){
-  sellerPanel.classList.remove("hidden");
- }
-});
+}
 
 // PUBLICAR PRODUCTO
+function publicar(){
 
-document.getElementById("productForm").addEventListener("submit", async e=>{
- e.preventDefault();
+let nombre=document.getElementById("nombre").value;
+let precio=parseFloat(document.getElementById("precio").value);
+let imagen=document.getElementById("imagen").value;
+let video=document.getElementById("video").value;
 
- const product={
-  name:name.value,
-  description:description.value,
-  price:Number(price.value),
-  image:image.value,
-  created:Date.now()
- };
+db.collection("productos").add({
 
- await db.collection("products").add(product);
-
- e.target.reset();
-});
-
-// CARGAR PRODUCTOS
-
-db.collection("products").orderBy("created","desc").onSnapshot(snapshot=>{
-
- productsDiv.innerHTML="";
-
- snapshot.forEach(doc=>{
-
-  const p=doc.data();
-
-  const card=document.createElement("div");
-  card.className="card";
-
-  card.innerHTML=`
-  <img src="${p.image}">
-  <h3>${p.name}</h3>
-  <p>${p.description}</p>
-  <p class="price">$${p.price}</p>
-  <button onclick="buy(${p.price})">Comprar</button>
-  `;
-
-  productsDiv.appendChild(card);
-
- });
+nombre:nombre,
+precio:precio,
+imagen:imagen,
+video:video
 
 });
 
-// COMPRA
+}
 
-function buy(price){
+// MOSTRAR PRODUCTOS
+db.collection("productos").onSnapshot((snapshot)=>{
 
- const commission = price*0.10;
- earnings += commission;
+let html="";
 
- earningsDiv.innerText = "$" + earnings.toFixed(2);
+snapshot.forEach((doc)=>{
 
- alert("Compra realizada. Comisión del marketplace: $"+commission.toFixed(2));
+let p=doc.data();
+
+html+=`
+<div class="producto">
+
+<h3>${p.nombre}</h3>
+
+<img src="${p.imagen}" width="150">
+
+<p>$${p.precio}</p>
+
+${p.video ? `<iframe width="200" src="${p.video}"></iframe>`:""}
+
+<br>
+
+<button onclick='agregar(${p.precio})'>Agregar al carrito</button>
+
+</div>
+`;
+
+});
+
+document.getElementById("productos").innerHTML=html;
+
+});
+
+// CARRITO
+function agregar(precio){
+
+carrito.push(precio);
+
+total+=precio;
+
+document.getElementById("total").innerText=total;
+
+}
+
+// COMPRAR
+function comprar(){
+
+let comision=total*0.10;
+
+db.collection("pedidos").add({
+
+total:total,
+comision:comision
+
+});
+
+alert("Compra realizada");
+
+carrito=[];
+total=0;
+
+document.getElementById("total").innerText=0;
+
+}
+
+// PANEL
+db.collection("pedidos").onSnapshot((snapshot)=>{
+
+let ventas=snapshot.size;
+
+let dinero=0;
+
+snapshot.forEach((doc)=>{
+
+dinero+=doc.data().comision;
+
+});
+
+document.getElementById("ventas").innerText=ventas;
+document.getElementById("ganancia").innerText="$"+dinero;
+
+});
+
+// BUSCADOR
+function buscarProducto(){
+
+let filtro=document.getElementById("buscar").value.toLowerCase();
+
+let productos=document.getElementsByClassName("producto");
+
+for(let p of productos){
+
+let texto=p.innerText.toLowerCase();
+
+p.style.display=texto.includes(filtro)?"block":"none";
+
+}
 
 }
 
