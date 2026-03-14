@@ -2,7 +2,7 @@
 <html>
 <head>
 
-<title>NovaMarket 4.0</title>
+<title>NovaMarket 5.0</title>
 
 <style>
 
@@ -35,7 +35,16 @@ margin:5px;
 
 <body>
 
-<h1>NovaMarket 4.0</h1>
+<h1>NovaMarket 5.0</h1>
+
+<h2>Login vendedor</h2>
+
+<input id="usuario" placeholder="Nombre vendedor">
+<button onclick="login()">Entrar</button>
+
+<p id="vendedor"></p>
+
+<hr>
 
 <h2>Publicar producto</h2>
 
@@ -54,14 +63,28 @@ margin:5px;
 
 <h2>Carrito</h2>
 
-<h3>Total: $<span id="total">0</span></h3>
+<p>Total: $<span id="total">0</span></p>
 
 <button onclick="comprar()">Comprar</button>
+
+<hr>
+
+<h2>Pedidos realizados</h2>
+
+<ul id="pedidos"></ul>
 
 <script>
 
 let productos=[]
 let total=0
+let vendedor=""
+
+function login(){
+
+vendedor=document.getElementById("usuario").value
+document.getElementById("vendedor").innerText="Vendedor: "+vendedor
+
+}
 
 function publicar(){
 
@@ -70,7 +93,9 @@ let precio=parseFloat(document.getElementById("precio").value)
 
 productos.push({
 nombre:nombre,
-precio:precio
+precio:precio,
+vendedor:vendedor,
+rating:5
 })
 
 mostrar()
@@ -90,6 +115,10 @@ html+=`
 <h3>${p.nombre}</h3>
 
 <p>$${p.precio}</p>
+
+<p>Vendedor: ${p.vendedor}</p>
+
+<p>⭐ ${p.rating}</p>
 
 <button onclick="agregar(${i})">Agregar al carrito</button>
 
@@ -121,6 +150,13 @@ ganancia=parseFloat(ganancia)+(total*0.10)
 
 localStorage.setItem("ventas",ventas)
 localStorage.setItem("ganancia",ganancia)
+
+let lista=document.getElementById("pedidos")
+
+let item=document.createElement("li")
+item.innerText="Pedido de $"+total
+
+lista.appendChild(item)
 
 alert("Compra realizada")
 
